@@ -49,17 +49,25 @@ public class CustomerServiceImpl implements CustomerService{
         validateValue(customerWithdrawDTO.getWithdrawValue());
         Distributeur distributeur = getValidDistributeur(customerWithdrawDTO.getAutomatIdentifier());
         Customer customer = getValidCustomer(customerWithdrawDTO.getName(), customerWithdrawDTO.getFirstName());
-        //TODO verifier qu'il y a assez d'argent sur le compte et sur le distributeur
-        customer.setAccountBalance(customer.getAccountBalance() - customerWithdrawDTO.getWithdrawValue());
-        customerRepository.save(customer);
-        distributeur.setQuantityMoneyAvailable(distributeur.getQuantityMoneyAvailable() - customerWithdrawDTO.getWithdrawValue());
-        distributeurRepository.save(distributeur);
 
-        CustomerDTO ret = new CustomerDTO();
-        ret.setAccountBalance(customer.getAccountBalance());
-        ret.setName(customer.getName());
-        ret.setFirstName(customer.getFirstName());
-        return ret;
+        int newAccountBalance = customer.getAccountBalance() - customerWithdrawDTO.getWithdrawValue();
+        int newAmountInDistributeur = distributeur.getQuantityMoneyAvailable() - customerWithdrawDTO.getWithdrawValue();
+
+        //Checks if there is enough money on bank account and in ATM
+        if(newAccountBalance >= 0 && newAmountInDistributeur >=0) {
+            customer.setAccountBalance(newAccountBalance);
+            customerRepository.save(customer);
+            distributeur.setQuantityMoneyAvailable(distributeur.getQuantityMoneyAvailable() - customerWithdrawDTO.getWithdrawValue());
+            distributeurRepository.save(distributeur);
+
+            CustomerDTO ret = new CustomerDTO();
+            ret.setAccountBalance(customer.getAccountBalance());
+            ret.setName(customer.getName());
+            ret.setFirstName(customer.getFirstName());
+            return ret;
+        } else {
+            throw(new DepositException());
+        }
     }
 
     private Distributeur getValidDistributeur(String automateIdentifier) throws NotFoundException {
